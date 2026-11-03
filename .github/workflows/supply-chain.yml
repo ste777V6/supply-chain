@@ -1,0 +1,181 @@
+# Build -> SBOM -> vulnerability gate -> push -> sign -> attest -> verify.
+#
+# Ordering is deliberate: the image is built and scanned BEFORE it is pushed,
+# so a vulnerable image never reaches the registry. Only images that passed
+# the gate get a signature and attestations, and the last job proves (as a
+# consumer would) that the signature and provenance verify.
+#
+# Requires a PUBLIC repo on GitHub Free/Pro/Team (artifact attestations in
+# private repos need GitHub Enterprise Cloud).
+name: supply-chain
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supply-chain-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-scan-sign:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # push to GHCR
+      id-token: write # OIDC token for Sigstore keyless signing + attestations
+      attestations: write # store attestations via the GitHub API
+      artifact-metadata: write # storage record (only used for org-owned repos)
+      security-events: write # upload Grype SARIF to code scanning
+    outputs:
+      image: ${{ steps.vars.outputs.image }}
+      digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Compute image name (GHCR requires lowercase)
+        id: vars
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      # 1) Build locally (not pushed yet) so it can be scanned first.
+      - name: Build image (local)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          load: true
+          push: false
+          tags: local/app:${{ github.sha }}
+          build-args: GIT_SHA=${{ github.sha }}
+
+      # 2) SBOM of the built image (OS packages + Python packages), SPDX 2.3 JSON.
+      - name: Generate SBOM (Syft)
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: local/app:${{ github.sha }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+          upload-artifact: true
+          upload-release-assets: false
+
+      # 3) Vulnerability gate on the SBOM. Fails the build on High/Critical
+      #    findings that have a fix available (unfixable OS CVEs are reported
+      #    but don't block - triage them via .grype.yaml with a justification).
+      - name: Scan SBOM (Grype)
+        id: grype
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          sbom: sbom.spdx.json
+          severity-cutoff: high
+          only-fixed: true
+          fail-build: true
+          output-format: sarif
+
+      - name: Upload Grype results to code scanning
+        if: ${{ !cancelled() && steps.grype.outputs.sarif != '' }}
+        uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+        with:
+          sarif_file: ${{ steps.grype.outputs.sarif }}
+          category: grype
+
+      # 4) Gate passed -> push. Same Dockerfile and build cache, so the layers
+      #    are reused; the registry digest is what gets signed and attested.
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        id: push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.vars.outputs.image }}:${{ github.sha }}
+            ${{ steps.vars.outputs.image }}:latest
+          build-args: GIT_SHA=${{ github.sha }}
+
+      # 5) Keyless signature with Sigstore (Fulcio cert bound to this
+      #    workflow's OIDC identity, logged in Rekor). Sign by DIGEST, never tag.
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: "v3.1.4"
+
+      - name: Sign image (cosign keyless)
+        env:
+          IMAGE: ${{ steps.vars.outputs.image }}
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: cosign sign --yes "${IMAGE}@${DIGEST}"
+
+      # 6) SLSA build provenance attestation (who/what/how built this digest).
+      - name: Attest build provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.vars.outputs.image }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+      # 7) SBOM attestation (signed statement: "this digest contains these packages").
+      - name: Attest SBOM
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ steps.vars.outputs.image }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          sbom-path: sbom.spdx.json
+          push-to-registry: true
+
+  # Consumer-side check, in a separate job with read-only permissions:
+  # if this passes, anyone can verify the image the same way.
+  verify:
+    needs: build-scan-sign
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      attestations: read
+    env:
+      IMAGE: ${{ needs.build-scan-sign.outputs.image }}
+      DIGEST: ${{ needs.build-scan-sign.outputs.digest }}
+    steps:
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: "v3.1.4"
+
+      - name: Verify cosign signature (pinned to this repo's workflow identity)
+        env:
+          IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/supply-chain.yml@${{ github.ref }}
+        run: |
+          cosign verify "${IMAGE}@${DIGEST}" \
+            --certificate-identity "${IDENTITY}" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+      - name: Verify SLSA provenance attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh attestation verify "oci://${IMAGE}@${DIGEST}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --signer-workflow "${GITHUB_REPOSITORY}/.github/workflows/supply-chain.yml"
+
+      - name: Verify SBOM attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh attestation verify "oci://${IMAGE}@${DIGEST}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --predicate-type https://spdx.dev/Document/v2.3

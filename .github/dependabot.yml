@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+  # Keeps the SHA-pinned actions current (Dependabot updates both the SHA and
+  # the "# vX.Y.Z" comment).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

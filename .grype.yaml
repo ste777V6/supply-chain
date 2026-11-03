@@ -1,0 +1,9 @@
+# Grype configuration, picked up automatically from the repo root.
+# Use "ignore" ONLY for triaged findings, and always record why - this file is
+# your audit trail for accepted risk. Example (commented out):
+#
+# ignore:
+#   - vulnerability: CVE-2099-0001
+#     reason: "Not reachable: affected function not used; re-check by 2026-12-31"
+#     package:
+#       name: example-package

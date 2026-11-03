@@ -1,0 +1,5 @@
+# Pinned exact versions so the SBOM, dependency review and Grype all see the
+# same, reproducible dependency set. Dependabot (see .github/dependabot.yml)
+# proposes upgrades as PRs, which then go through dependency review.
+flask==3.1.3
+gunicorn==26.2.0
