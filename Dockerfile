@@ -7,14 +7,14 @@
 # Hardening step for later: pin the base image by digest
 # (python:3.12-slim@sha256:...) and let Dependabot's "docker" ecosystem bump it.
 
-FROM python:3.12-slim AS builder
+FROM python:3.15-slim AS builder
 WORKDIR /build
 # Venv created WITHOUT pip; the builder's own pip installs into it via --python.
 RUN python -m venv --without-pip /opt/venv
 COPY requirements.txt .
 RUN pip --python /opt/venv/bin/python install --no-cache-dir -r requirements.txt
 
-FROM python:3.12-slim
+FROM python:3.15-slim
 ARG GIT_SHA=unknown
 ENV GIT_SHA=${GIT_SHA} \
     PATH="/opt/venv/bin:$PATH" \
