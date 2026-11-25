@@ -1,0 +1,47 @@
+#pre commit config · YAML
+# .pre-commit-config.yaml — Layer 1: fast checks on the developer laptop (enterprise toolset)
+#
+# Setup (once per clone):
+#   pip install pre-commit            # or: pipx install pre-commit
+#   pre-commit install                # hooks now run on every `git commit`
+#   pre-commit autoupdate --freeze    # latest releases, pinned to commit SHAs
+#   pre-commit run --all-files        # baseline scan of the whole repo
+#
+# Hooks only see staged files and can be skipped with `git commit --no-verify`.
+# The controls that cannot be skipped are server-side: GitHub push protection
+# and the PR checks in pr.yml.
+ 
+repos:
+  # ---------------------------------------------------------------- secrets
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: 2ca41cc1372d1e939a6a879f18cdc19fc1cac1ce  # frozen: v8.30.0
+    hooks:
+      - id: gitleaks                    # config in .gitleaks.toml
+ 
+  # ---------------------------------------------------------------- SAST (replaces bandit)
+  # Snippet shape from Semgrep's pre-commit docs (docs.semgrep.dev/extensions/pre-commit).
+  # Community Edition: public registry rulesets, no login needed.
+  - repo: https://github.com/semgrep/pre-commit
+    rev: '5edb47f7049963d4aeee20b2d4843c2860a48112'  # frozen: v1.187.0
+    hooks:
+      - id: semgrep
+        entry: semgrep
+        args: ['--config', 'p/python', '--config', 'p/javascript', '--error', '--skip-unknown-extensions']
+      # With a Semgrep AppSec Platform account (after `semgrep login`), use instead:
+      # - id: semgrep-ci
+ 
+  # ---------------------------------------------------------------- Dockerfiles
+  - repo: https://github.com/hadolint/hadolint
+    rev: 2eece55955ced00200be9729e9728cb7dacca505  # frozen: v2.15.1
+    hooks:
+      - id: hadolint-docker             # runs in a container, needs Docker running
+ 
+  # ---------------------------------------------------------------- basic hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
+    hooks:
+      - id: detect-private-key
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-yaml
+        args: ['--allow-multiple-documents']   # Kubernetes manifests use '---'

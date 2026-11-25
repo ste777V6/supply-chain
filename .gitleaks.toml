@@ -1,0 +1,13 @@
+# .gitleaks.toml — use gitleaks' built-in rules, plus a narrow allowlist.
+# Keep the allowlist small: every entry is a place a real secret could hide unnoticed.
+
+title = "supply-chain project gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known safe paths"
+paths = [
+  '''docs/evidence/.*''',      # screenshots and exported findings, may show redacted fake keys
+]
