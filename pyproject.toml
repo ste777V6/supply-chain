@@ -1,3 +1,6 @@
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "node_modules"]
