@@ -1,0 +1,121 @@
+# Layer 2 additions: the PR checks v1 did not have yet.
+# Existing v1 checks stay in their own files: ci.yml (tests), codeql.yml (SAST),
+# dependency-review.yml (new dependencies), scorecard.yml (repo hygiene).
+#
+# Blocking (add as required status checks on main):
+#   gitleaks · hadolint · image-gate
+# Report only (Security tab):
+#   semgrep
+#
+# SHAs marked "from v1" are copied from the existing workflows.
+# All actions pinned to commit SHAs; versions in the trailing comments.
+name: L2-pr-security_SAST_SBOM
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-security-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # ------------------------------------------------------------------ secrets
+  # Backs up the local pre-commit hook, which `git commit --no-verify` skips.
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (from v1)
+        with:
+          fetch-depth: 0 # scan every commit in the PR, not just the last one
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e #v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ------------------------------------------------------------------ Dockerfile lint
+  hadolint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (from v1)
+        with:
+          persist-credentials: false
+      - uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: error
+
+  # ------------------------------------------------------------------ second-opinion SAST
+  # Report only: CodeQL (codeql.yml) is the blocking SAST check via the ruleset.
+  semgrep:
+    runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]'
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (from v1)
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0 (from v1)
+        with:
+          python-version: "3.12"
+      - name: Install Semgrep (same version as the pre-commit hook)
+        run: pip install "semgrep==1.187.0"  # same version as the pre-commit hook
+      - name: Semgrep scan to SARIF
+        run: semgrep scan --config p/python --sarif --output semgrep.sarif
+      - name: Upload Semgrep results to code scanning
+        if: ${{ !cancelled() }}
+        uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2 (from v1)
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  # ------------------------------------------------------------------ image gate before merge
+  # Same tools and settings as the gate in supply-chain.yml (Syft SBOM -> Grype),
+  # run BEFORE merge so a vulnerable image is caught early. Nothing is pushed.
+  image-gate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # upload Grype SARIF for the PR
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 (from v1)
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1 (from v1)
+      - name: Build image (local only, not pushed)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0 (from v1)
+        with:
+          context: .
+          load: true
+          push: false
+          tags: local/app:pr-${{ github.sha }}
+          build-args: GIT_SHA=${{ github.sha }}
+
+      - name: Generate SBOM (Syft)
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3 (from v1)
+        with:
+          image: local/app:pr-${{ github.sha }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+          upload-artifact: true
+          upload-release-assets: false
+          
+      - name: Scan SBOM (Grype) - fixable High/Critical fails the PR
+        id: grype
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2 (from v1)
+        with:
+          sbom: sbom.spdx.json
+          severity-cutoff: high
+          only-fixed: true
+          fail-build: true
+          output-format: sarif
+      - name: Upload Grype results to code scanning
+        if: ${{ !cancelled() && steps.grype.outputs.sarif != '' }}
+        uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2 (from v1)
+        with:
+          sarif_file: ${{ steps.grype.outputs.sarif }}
+          category: grype
