@@ -1,6 +1,6 @@
 # OpenSSF Scorecard: grades the repo's own supply-chain hygiene (pinned
 # dependencies, token permissions, branch protection, signed releases, ...).
-name: scorecard
+name: scorecard-Repo_hygiene
 
 on:
   push:

@@ -1,6 +1,6 @@
 # SAST with CodeQL ("advanced setup"). Results land in Security > Code scanning.
 # Free on public repos; private repos need GitHub Code Security.
-name: codeql
+name: codeql-SAST
 
 on:
   push:
