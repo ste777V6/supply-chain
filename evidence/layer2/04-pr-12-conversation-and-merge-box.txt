@@ -1,0 +1,257 @@
+Skip to content
+ste777V6
+supply-chain
+Repository navigation
+Code
+Issues
+Pull requests
+1
+ (1)
+Agents
+Actions
+Projects
+Wiki
+Security and quality
+26
+ (26)
+Insights
+Settings
+TEST: deliberately vulnerable files - do not merge- #12
+#12
+Open
+ste777V6
+wants to merge 1 commit into
+main
+from
+test/gates-vulnerable
++86
+-35
+Lines changed: 86 additions & 35 deletions
+Conversation6 (6)
+Commits1 (1)
+Checks11 (11)
+Files changed6 (6)
+Conversation
+@ste777V6
+ste777V6
+commented
+2 minutes ago
+Owner
+test security
+
+ste777V6
+TEST: deliberately vulnerable files - do not merge
+848a2b2
+github-advanced-security[bot]
+github-advanced-security Bot found potential problems 1 minute ago
+security-tests/app_vulnerable.py
+def ping():
+    host = request.args.get("host", "")
+    # Command injection: CodeQL py/command-line-injection
+    return subprocess.check_output("ping -c 1 " + host, shell=True)
+github-advanced-security commented 1 minute ago
+@github-advanced-security
+github-advanced-security
+Bot
+1m ago
+Error
+Semgrep OSS / Semgrep Finding: python.flask.security.injection.subprocess-injection.subprocess-injection
+Detected user input entering a subprocess call unsafely. This could result in a command injection vulnerability. An attacker could use this vulnerability to execute arbitrary commands on the host, which allows them to download malware, scan sensitive data, or run any command they wish on the server. Do not let users choose the command to run. In general, prefer to use Python API versions of system commands. If you must use subprocess, use a dictionary to allowlist a set of commands.
+
+Show more details
+
+@ste777V6	Reply...
+Dismissing the alert will mark this conversation as resolved.
+security-tests/app_vulnerable.py
+def ping():
+    host = request.args.get("host", "")
+    # Command injection: CodeQL py/command-line-injection
+    return subprocess.check_output("ping -c 1 " + host, shell=True)
+github-advanced-security commented 1 minute ago
+@github-advanced-security
+github-advanced-security
+Bot
+1m ago
+Error
+Semgrep OSS / Semgrep Finding: python.lang.security.dangerous-subprocess-use.dangerous-subprocess-use
+Detected subprocess function 'check_output' with user controlled data. A malicious actor could leverage this to perform command injection. You may consider using 'shlex.escape()'.
+
+Show more details
+
+@ste777V6	Reply...
+Dismissing the alert will mark this conversation as resolved.
+security-tests/app_vulnerable.py
+def ping():
+    host = request.args.get("host", "")
+    # Command injection: CodeQL py/command-line-injection
+    return subprocess.check_output("ping -c 1 " + host, shell=True)
+github-advanced-security commented 1 minute ago
+@github-advanced-security
+github-advanced-security
+Bot
+1m ago
+Error
+Semgrep OSS / Semgrep Finding: python.lang.security.audit.subprocess-shell-true.subprocess-shell-true
+Found 'subprocess' function 'check_output' with 'shell=True'. This is dangerous because this call will spawn the command using a shell process. Doing so propagates current shell settings and variables, which makes it much easier for a malicious actor to execute commands. Use 'shell=False' instead.
+
+Show more details
+
+@ste777V6	Reply...
+Dismissing the alert will mark this conversation as resolved.
+security-tests/app_vulnerable.py
+    name = request.args.get("name", "")
+    conn = sqlite3.connect("app.db")
+    # SQL injection: CodeQL py/sql-injection
+    rows = conn.execute("SELECT * FROM users WHERE name = '" + name + "'").fetchall()
+github-advanced-security commented 1 minute ago
+@github-advanced-security
+github-advanced-security
+Bot
+1m ago
+Error
+Semgrep OSS / Semgrep Finding: python.flask.security.injection.tainted-sql-string.tainted-sql-string
+Detected user input used to manually construct a SQL string. This is usually bad practice because manual construction could accidentally result in a SQL injection. An attacker could use a SQL injection to steal or modify contents of the database. Instead, use a parameterized query which is available by default in most database engines. Alternatively, consider using an object-relational mapper (ORM) such as SQLAlchemy which will protect your queries.
+
+Show more details
+
+@ste777V6	Reply...
+Dismissing the alert will mark this conversation as resolved.
+github-advanced-security[bot]
+github-advanced-security Bot found potential problems 1 minute ago
+security-tests/app_vulnerable.py
+def ping():
+    host = request.args.get("host", "")
+    # Command injection: CodeQL py/command-line-injection
+    return subprocess.check_output("ping -c 1 " + host, shell=True)
+github-advanced-security commented 1 minute ago
+@github-advanced-security
+github-advanced-security
+Bot
+1m ago
+Critical
+CodeQL / Uncontrolled command line
+This command line depends on a user-provided value.
+
+Show more details
+
+Suggested changeset 1 (1)
+security-tests/app_vulnerable.py
+Copilot uses AI. Check for mistakes.
+@ste777V6	Reply...
+Dismissing the alert will mark this conversation as resolved.
+security-tests/app_vulnerable.py
+    name = request.args.get("name", "")
+    conn = sqlite3.connect("app.db")
+    # SQL injection: CodeQL py/sql-injection
+    rows = conn.execute("SELECT * FROM users WHERE name = '" + name + "'").fetchall()
+github-advanced-security commented 1 minute ago
+@github-advanced-security
+github-advanced-security
+Bot
+1m ago
+High
+CodeQL / SQL query built from user-controlled sources
+This SQL query depends on a user-provided value.
+
+Show more details
+
+Suggested changeset 1 (1)
+security-tests/app_vulnerable.py
+Original file line number	Diff line number	Diff line change
+ def user():
+     name = request.args.get("name", "")
+     conn = sqlite3.connect("app.db")
+     # SQL injection: CodeQL py/sql-injection
+     rows = conn.execute("SELECT * FROM users WHERE name = '" + name + "'").fetchall()
+     # Fixed: use a parameterized query to avoid SQL injection
+     rows = conn.execute("SELECT * FROM users WHERE name = ?", (name,)).fetchall()
+     return str(rows)
+Copilot uses AI. Check for mistakes.
+@ste777V6	Reply...
+Dismissing the alert will mark this conversation as resolved.
+Merge info
+Some checks were not successful
+5 failing, 6 successful checks
+
+
+failing checks
+ci-tests / test (pull_request)
+ci-tests / test (pull_request)Failing after 7s
+Required
+Code scanning results / CodeQL
+Code scanning results / CodeQLFailing after 4s — 2 new alerts including 1 critical severity security vulnerability
+Code scanning results / Semgrep OSS
+Code scanning results / Semgrep OSSFailing after 10s — 4 new alerts including 4 errors
+L2-pr-security_SAST_SBOM / hadolint (pull_request)
+L2-pr-security_SAST_SBOM / hadolint (pull_request)Failing after 9s
+Required
+L2-pr-security_SAST_SBOM / image-gate (pull_request)
+L2-pr-security_SAST_SBOM / image-gate (pull_request)Failing after 2m
+Required
+successful checks
+Code scanning results / grype
+Code scanning results / grypeSuccessful in 4s — No new alerts in code changed by this pull request
+codeql-SAST / analyze (actions, none) (pull_request)
+codeql-SAST / analyze (actions, none) (pull_request)Successful in 38s
+codeql-SAST / analyze (python, none) (pull_request)
+codeql-SAST / analyze (python, none) (pull_request)Successful in 45s
+dependency-review / dependency-review (pull_request)
+dependency-review / dependency-review (pull_request)Successful in 7s
+Required
+L2-pr-security_SAST_SBOM / gitleaks (pull_request)
+L2-pr-security_SAST_SBOM / gitleaks (pull_request)Successful in 8s
+Required
+L2-pr-security_SAST_SBOM / semgrep (pull_request)
+L2-pr-security_SAST_SBOM / semgrep (pull_request)Successful in 36s
+Merging is blocked
+CodeQL has detected 2 security relevant alerts blocking this code from being merged.
+You can also merge this with the command line. 
+Still in progress?
+@ste777V6
+
+
+Add a comment
+Comment
+ 
+
+Add your comment here...
+Remember, contributions to this repository should follow our GitHub Community Guidelines.
+ ProTip! Add comments to specific lines under Files changed.
+Reviewers
+1 more reviewer
+@github-advanced-security
+github-advanced-security[bot]
+Still in progress?
+Assignees
+No one—
+Labels
+None yet
+Projects
+None yet
+Milestone
+No milestone
+Development
+Successfully merging this pull request may close these issues.
+
+None yet
+
+
+Notifications
+Customize
+You’re receiving notifications because you authored the thread.
+2 participants
+@ste777V6
+@github-advanced-security
+ Archive pull request
+Footer
+© 2026 GitHub, Inc.
+Footer navigation
+Terms
+Privacy
+Security
+Status
+Community
+Docs
+Contact
+Manage cookies
+Do not share my personal information

@@ -1,0 +1,13 @@
+PR #12 - dependency-review re-run (run 46043975237 attempt #2) - Success in 9s
+https://github.com/ste777V6/supply-chain/actions/runs/46043975237?pr=12
+
+Dependency Review
+  No vulnerabilities or license issues or OpenSSF Scorecard issues found.
+OpenSSF Scorecard
+  Package       Version   Score     Details
+  pip/flask     3.1.3     Unknown   Unknown
+  pip/gunicorn  27.0.1    Unknown   Unknown
+Scanned Files
+  requirements_origin.txt
+
+=> requirements.txt (requests==2.19.0, urllib3==1.23) was NOT among the scanned files.

@@ -1,0 +1,15 @@
+PR #12 - image-gate job (run 46043975261, job 140658479391) - FAILED in 2m 6s
+https://github.com/ste777V6/supply-chain/actions/runs/46043975261/job/140658479391?pr=12
+
+Run anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439
+  with: sbom: sbom.spdx.json, severity-cutoff: high, only-fixed: true, fail-build: true, output-format: sarif
+Installing grype v0.118.0 (checksums file downloaded alongside the release tarball)
+grype -v -o sarif --file /tmp/grype-776sWi/output --fail-on high --only-fixed sbom:sbom.spdx.json
+  [0000]  INFO grype version: 0.118.0
+  [0000]  INFO using distro: debian 12.2
+  [0000]  INFO gathered packages packages=129
+  [0088]  INFO installed new vulnerability DB built=2026-11-27T06:22:11Z version=v6.1.10
+  [0091]  INFO ignoring 371 matches due to user-provided ignore rules
+  [0091] ERROR discovered vulnerabilities at or above the severity threshold
+Error: Failed minimum severity level. Found vulnerabilities with level 'high' or higher
+Run github/codeql-action/upload-sarif (SARIF uploaded to code scanning, category grype)
