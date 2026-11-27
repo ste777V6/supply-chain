@@ -1,0 +1,17 @@
+PR #12 - dependency-review job (run 46043975237, job 140658478680) - succeeded in 7s
+https://github.com/ste777V6/supply-chain/actions/runs/46043975237/job/140658478680?pr=12
+
+Run actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
+  with:
+    fail-on-severity: high
+    comment-summary-in-pr: on-failure
+    repo-token: ***
+Vulnerabilities
+  Dependency review did not detect any vulnerable packages with severity level "high" or higher.
+Licenses
+Denied
+  Dependency review did not detect any denied packages
+Scorecard
+  pip/flask: OpenSSF Scorecard Score: undefined
+  pip/gunicorn: OpenSSF Scorecard Score: undefined
+Dependency Changes

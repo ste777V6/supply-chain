@@ -134,14 +134,15 @@ git commit -m "Enforce LF line endings via .gitattributes"
 | 1 | Synthetic AWS access key ID only | GitHub push protection | **Not blocked**: AWS keys are detected as an ID + secret pair |
 | 2 | Synthetic ID + 25-character lowercase "secret" | GitHub push protection | **Not blocked**: the secret does not have AWS's 40-character format |
 | 3 | Valid-format synthetic pair (`AKIA` + 16 base32 characters, 40-character secret), normal commit | gitleaks hook | **Blocked** (`RuleID: generic-api-key`, line 2, entropy 5.17) |
-| 4 | Same pair, `git commit --no-verify` then `git push` | GitHub push protection | **Not blocked**: push accepted (commit `8ca63de`) |
+| 4 | Same pair, `git commit --no-verify` then `git push` | GitHub push protection | **Not blocked**: push accepted (commit `8ca63de`). See the correction below. |
 | 5 | After the push | GitHub secret scanning | **No alert** (0 open / 0 closed) |
+| 6 | Re-test in Layer 2 (PR #12): valid-format ID (`AKIA` + 16 base32 characters) + 40-character secret | GitHub push protection | **Blocked** (GH013). Bypass "used in tests" recorded 2 alerts. |
 
 **Lesson on test data:** the 16 characters after `AKIA` in a real AWS key ID are base32-encoded (A–Z and 2–7) and contain the account number. An early test key contained a `9`, which no real key can contain, so scanners correctly ignored it.
 
-**Conclusion:**
+**Conclusion (corrected after the Layer 2 re-test):**
 
-> The local gitleaks hook blocked a synthetic AWS key pair. GitHub push protection (enabled) accepted the same pair when the hook was bypassed with `--no-verify`, and secret scanning raised no alert afterwards. GitHub's provider detection targets genuine credentials and cannot be tested reliably with synthetic keys. Defence in depth: gitleaks runs again in CI (`pr.yml`), so a bypassed local hook is caught before merge.
+> The local gitleaks hook blocked a synthetic AWS key pair. **GitHub push protection also blocks a synthetic pair, provided the format is valid**: in the Layer 2 test (PR #12) the push was rejected with GH013, and the audited bypass created two secret scanning alerts. The earlier pass in test 4 was most likely a broken test (an invalid key ID or a wrong-length secret still in the file), not a limitation of GitHub. Defence in depth still applies: gitleaks runs again in CI, so a bypassed local hook is caught before merge. Evidence: `docs/02-pr-layer.md` section 6.1.
 
 ### 7.2 Remaining hook tests
 
@@ -171,7 +172,8 @@ Any secret scanning alert raised by tests is closed with the reason **"Used in t
 ## 9. Lessons learned
 
 - **Hooks are convenience, server-side checks are controls.** `--no-verify` skips every local hook.
-- **No single control catches everything.** gitleaks caught what GitHub push protection did not; the same check runs again in CI.
+- **No single control catches everything,** so secrets are checked three times: the local gitleaks hook, GitHub push protection, and gitleaks in CI.
+- **Check the test before trusting a negative result.** An early conclusion that push protection ignores synthetic keys was wrong; the test data was invalid.
 - **Test data must be realistic** to test a detector; structurally impossible secrets prove nothing.
 - **Pin tools by SHA**, not by tag.
 - **Documentation can trigger the checks too.** An earlier version of this file quoted a full private-key header as test input, and `detect-private-key` blocked the commit. The hook matches the header text alone, wherever it appears; the fix was to describe the header rather than paste it, not to exclude `docs/` from scanning.

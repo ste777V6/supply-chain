@@ -1,0 +1,106 @@
+Skip to content
+ste777V6
+supply-chain
+Repository navigation
+Code
+Issues
+Pull requests
+1
+ (1)
+Agents
+Actions
+Projects
+Wiki
+Security and quality
+27
+ (27)
+Insights
+Settings
+Back to pull request #12
+TEST: deliberately vulnerable files - do not merge #3
+All jobs
+Run details
+Annotations
+3 warnings
+gitleaks
+failed now in 9s
+Search logs
+1s
+1s
+4s
+Run gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e
+(node:2470) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:2470) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+[ste777V6] is an individual user. No license key is required.
+gitleaks version: 8.24.3
+Version to install: 8.24.3 (target directory: /tmp/gitleaks-8.24.3)
+Cache hit for: gitleaks-cache-8.24.3-linux-x64
+Received 5713619 of 5713619 (100.0%), 11.5 MBs/sec
+Cache Size: ~5 MB (5713619 B)
+/usr/bin/tar -xf /home/runner/work/_temp/57c7f4e2-74ec-44e5-a97e-46101c5893fa/cache.tzst -P -C /home/runner/work/supply-chain/supply-chain --use-compress-program unzstd
+Cache restored successfully
+Gitleaks restored from cache
+event type: pull_request
+gitleaks cmd: gitleaks detect --redact -v --exit-code=2 --report-format=sarif --report-path=results.sarif --log-level=debug --log-opts=--no-merges --first-parent 8feb8d89559c9b785f8f56dfbb0bc4e06e8371c9^..80f8a985a3a00b6824157c5a31ea099620990703
+/tmp/gitleaks-8.24.3/gitleaks detect --redact -v --exit-code=2 --report-format=sarif --report-path=results.sarif --log-level=debug --log-opts=--no-merges --first-parent 8feb8d89559c9b785f8f56dfbb0bc4e06e8371c9^..80f8a985a3a00b6824157c5a31ea099620990703
+
+    ○
+    │╲
+    │ ○
+    ○ ░
+    ░    gitleaks
+
+6:38PM DBG using github.com/wasilibs/go-re2 regex engine
+6:38PM DBG using existing gitleaks config .gitleaks.toml from `(--source)/.gitleaks.toml`
+6:38PM DBG extending config with default config
+6:38PM DBG executing: /usr/bin/git -C . log -p -U0 --no-merges --first-parent 8feb8d89559c9b785f8f56dfbb0bc4e06e8371c9^..80f8a985a3a00b6824157c5a31ea099620990703
+6:38PM DBG SCM platform parsed from host host=github.com platform=github
+Finding:     aws_access_key_id = REDACTED
+Secret:      REDACTED
+RuleID:      aws-access-token
+Entropy:     4.121928
+File:        security-tests/secrets_vulnerable.txt
+Line:        4
+Commit:      80f8a985a3a00b6824157c5a31ea099620990703
+Author:      ste777V6
+Email:       rapturev6.777
+Date:        2026-11-27T18:36:31Z
+Fingerprint: 80f8a985a3a00b6824157c5a31ea099620990703:security-tests/secrets_vulnerable.txt:aws-access-token:4
+Link:        https://github.com/ste777V6/supply-chain/blob/80f8a985a3a00b6824157c5a31ea099620990703/security-tests/secrets_vulnerable.txt#L4
+
+Finding:     aws_secret_access_key = REDACTED
+Secret:      REDACTED
+RuleID:      generic-api-key
+Entropy:     5.171928
+File:        security-tests/secrets_vulnerable.txt
+Line:        5
+Commit:      80f8a985a3a00b6824157c5a31ea099620990703
+Author:      ste777V6
+Email:       rapturev6.777
+Date:        2026-11-27T18:36:31Z
+Fingerprint: 80f8a985a3a00b6824157c5a31ea099620990703:security-tests/secrets_vulnerable.txt:generic-api-key:5
+Link:        https://github.com/ste777V6/supply-chain/blob/80f8a985a3a00b6824157c5a31ea099620990703/security-tests/secrets_vulnerable.txt#L5
+
+6:38PM INF 2 commits scanned.
+6:38PM DBG Note: this number might be smaller than expected due to commits with no additions
+6:38PM INF scanned ~3795 bytes (3.80 KB) in 154ms
+6:38PM WRN leaks found: 2
+Artifact name is valid!
+Root directory input is valid!
+Beginning upload of artifact content to blob storage
+Uploaded bytes 7193
+Finished uploading artifact content to blob storage!
+SHA256 digest of uploaded artifact zip is f158617a6308b5ea959c101a0b5b56f313e072331e28df5664168da4eba9db98
+Finalizing artifact upload
+Artifact gitleaks-results.sarif.zip successfully finalized. Artifact ID 15224611171
+Warning: Error encountered when attempting to write a comment on PR #12: HttpError: Resource not accessible by integration
+Likely an issue with too large of a diff for the comment to be written.
+All secrets that have been leaked will be reported in the summary and job artifact.
+Warning: Error encountered when attempting to write a comment on PR #12: HttpError: Resource not accessible by integration
+Likely an issue with too large of a diff for the comment to be written.
+All secrets that have been leaked will be reported in the summary and job artifact.
+Warning: 🛑 Leaks detected, see job summary for details
+0s
+0s
+Cleaning up orphan processes
